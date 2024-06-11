@@ -1,11 +1,12 @@
 from datetime import datetime, timedelta
 from airflow import DAG
-from airflow.operators.python import PythonOperator, BranchPythonOperator
+from airflow.operators.python import PythonOperator
+from airflow.operators.python import ShortCircuitOperator
 from airflow.providers.ssh.operators.ssh import SSHOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.operators.dummy import DummyOperator
-from project_task2_files.check_and_push_to_xcom import check_and_push_to_xcom
-from project_task2_files.decide_which_path import decide_which_path
+from project_task2_files.check_s3_files import check_s3_files
+
 
 default_args = {
     'owner': 'ms',
@@ -25,16 +26,14 @@ dag = DAG(
     catchup=False
 )
 
-check_file_exists_operator = PythonOperator(
-    task_id='check_file_exists',
-    python_callable=check_and_push_to_xcom,
-    provide_context=True,
+start_operator = DummyOperator(
+    task_id='start',
     dag=dag,
 )
 
-branching_operator = BranchPythonOperator(
-    task_id='decide_which_path',
-    python_callable=decide_which_path,
+short_circuit_operator = ShortCircuitOperator(
+    task_id='check_file_exists',
+    python_callable=check_s3_files,
     provide_context=True,
     dag=dag,
 )
@@ -79,19 +78,10 @@ delete_final_table_operator = PostgresOperator(
     dag=dag,
 )
 
-generate_daily_report_operator = PostgresOperator(
-    task_id='generate_daily_active_employee_report',
-    postgres_conn_id='my_postgres',
-    sql='project_task2_files/generate_daily_report.sql',
-    dag=dag,
-)
-
 end_operator = DummyOperator(
     task_id='end',
     dag=dag,
 )
 
 # task sequence
-check_file_exists_operator >> branching_operator
-branching_operator >> run_spark_submit >> update_final_table_operator >> insert_final_table_operator >> delete_final_table_operator >> generate_daily>
-branching_operator >> generate_daily_report_operator >> end_operator
+start_operator >> short_circuit_operator >> run_spark_submit >> update_final_table_operator >> insert_final_table_operator >> delete_final_table_operator >> end_operator
