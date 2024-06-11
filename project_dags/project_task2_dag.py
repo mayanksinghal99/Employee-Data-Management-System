@@ -93,5 +93,5 @@ end_operator = DummyOperator(
 
 # task sequence
 check_file_exists_operator >> branching_operator
-branching_operator >> run_spark_submit >> update_final_table_operator >> insert_final_table_operator >> delete_final_table_operator >> generate_daily_report_operator
-branching_operator >> end_operator
+branching_operator >> run_spark_submit >> update_final_table_operator >> insert_final_table_operator >> delete_final_table_operator >> generate_daily>
+branching_operator >> generate_daily_report_operator >> end_operator
