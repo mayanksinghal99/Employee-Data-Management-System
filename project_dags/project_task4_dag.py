@@ -1,12 +1,11 @@
 from datetime import datetime, timedelta
 from airflow import DAG
-from airflow.operators.python import PythonOperator, BranchPythonOperator
+from airflow.operators.python import PythonOperator
+from airflow.operators.python import ShortCircuitOperator
 from airflow.providers.ssh.operators.ssh import SSHOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.operators.dummy import DummyOperator
-from project_task4_files.check_and_push_to_xcom import check_and_push_to_xcom
-from project_task4_files.decide_which_path import decide_which_path
-
+from project_task4_files.check_s3_files import check_s3_files
 
 default_args = {
     'owner': 'ms',
@@ -27,17 +26,14 @@ dag = DAG(
     catchup=False
 )
 
-
-check_file_exists_operator = PythonOperator(
-    task_id='check_file_exists',
-    python_callable=check_and_push_to_xcom,
-    provide_context=True,
+start_operator = DummyOperator(
+    task_id='start',
     dag=dag,
 )
 
-branching_operator = BranchPythonOperator(
-    task_id='decide_which_path',
-    python_callable=decide_which_path,
+short_circuit_operator = ShortCircuitOperator(
+    task_id='check_file_exists',
+    python_callable=check_s3_files,
     provide_context=True,
     dag=dag,
 )
@@ -56,7 +52,7 @@ run_spark_submit_fetch_load = SSHOperator(
         --jars postgresql-42.7.3.jar \
         s3://ttn-de-bootcamp-2024-gold-us-east-1/insha.danish/scripts/emp_leave_data_dag/fetch_and_load_data.py
     """,
-    conn_timeout=600, 
+    conn_timeout=600,
     cmd_timeout=600,
     dag=dag,
 )
@@ -82,7 +78,7 @@ run_spark_submit_potential_leaves = SSHOperator(
         --jars postgresql-42.7.3.jar \
         s3://ttn-de-bootcamp-2024-gold-us-east-1/insha.danish/scripts/emp_leave_data_dag/calculate_potential_leaves.py
     """,
-    conn_timeout=600,  
+    conn_timeout=600,
     cmd_timeout=600,
     dag=dag,
 )
@@ -93,6 +89,4 @@ end_operator = DummyOperator(
 )
 
 #task sequence
-check_file_exists_operator >> branching_operator
-branching_operator >> run_spark_submit_fetch_load >> update_final_table_operator >> run_spark_submit_potential_leaves
-branching_operator >> end_operator
+start_operator >> short_circuit_operator >> run_spark_submit_fetch_load >> update_final_table_operator >> run_spark_submit_potential_leaves >> end_operator
