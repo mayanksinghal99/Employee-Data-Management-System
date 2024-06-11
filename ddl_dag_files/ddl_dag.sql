@@ -94,7 +94,7 @@ CREATE TABLE IF NOT EXISTS employee_strikes(
     new_salary numeric(23,2)
 );
 
-CREATE TABLE IF NOT EXISTS public.scd_employee_strikes(
+CREATE TABLE IF NOT EXISTS scd_employee_strikes(
     employee_id bigint,
     strike_count integer,
     last_strike_date date,
