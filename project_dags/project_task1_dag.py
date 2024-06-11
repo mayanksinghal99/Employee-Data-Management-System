@@ -1,14 +1,13 @@
-from airflow.operators.python import PythonOperator
 from airflow.utils.dates import days_ago
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.python import PythonOperator, BranchPythonOperator
 from airflow.providers.ssh.operators.ssh import SSHOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
+from airflow.operators.python import PythonOperator, ShortCircuitOperator
 from airflow.operators.dummy import DummyOperator
-from project_task1_files.check_and_push_to_xcom import check_and_push_to_xcom
-from project_task1_files.decide_which_path import decide_which_path
-from airflow.utils.trigger_rule import TriggerRule
+from project_task1_files.check_s3_files import check_s3_files
+
 
 default_args = {
     'owner': 'ms',
@@ -30,16 +29,14 @@ dag = DAG(
 )
 
 
-check_file_exists_operator = PythonOperator(
-    task_id='check_file_exists',
-    python_callable=check_and_push_to_xcom,
-    provide_context=True,
+start_operator = DummyOperator(
+    task_id='start',
     dag=dag,
 )
 
-branching_operator = BranchPythonOperator(
-    task_id='decide_which_path',
-    python_callable=decide_which_path,
+short_circuit_operator = ShortCircuitOperator(
+    task_id='check_file_exists',
+    python_callable=check_s3_files,
     provide_context=True,
     dag=dag,
 )
@@ -76,7 +73,4 @@ end_operator = DummyOperator(
 
 
 # task sequence
-check_file_exists_operator >> branching_operator
-branching_operator >> run_spark_submit >> update_final_table_operator
-branching_operator >> end_operator
-
+start_operator >> short_circuit_operator >> run_spark_submit >> update_final_table_operator >> end_operator
