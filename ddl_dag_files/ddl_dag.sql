@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS potential_leave_count(
     upcoming_leaves INT
 );
 
-CREATE TABLE IF NOT EXISTS public.employee_messages(
+CREATE TABLE IF NOT EXISTS employee_messages(
     sender_id bigint,
     receiver_id bigint,
     msg_text text,
@@ -79,23 +79,23 @@ CREATE TABLE IF NOT EXISTS public.employee_messages(
     msg_timestamp timestamp
 );
 
-CREATE TABLE IF NOT EXISTS public.employee_messages_staging (
+CREATE TABLE IF NOT EXISTS employee_messages_staging (
     employee_id bigint,
-    strike_count bigint NOT NULL,
-    last_strike_date timestamp without time zone,
+    strike_count bigint,
+    last_strike_date timestamp,
     salary numeric(23,2)
 );
 
-CREATE TABLE IF NOT EXISTS public.employee_strikes(
+CREATE TABLE IF NOT EXISTS employee_strikes(
     employee_id bigint,
-    strike_count bigint NOT NULL,
+    strike_count bigint,
     last_strike_date timestamp,
     salary numeric(23,2),
     new_salary numeric(23,2)
 );
 
 CREATE TABLE IF NOT EXISTS public.scd_employee_strikes(
-    employee_id bigint NOT NULL,
+    employee_id bigint,
     strike_count integer,
     last_strike_date date,
     salary numeric,
